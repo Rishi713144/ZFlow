@@ -1,7 +1,23 @@
 {
-	"dependencies": {
-		"@prisma/config": "^7.3.0",
-		"dotenv": "^17.2.3"
+	"name": "zflow",
+	"version": "1.0.0",
+	"description": "A professional, self-hosted workflow automation platform.",
+	"private": true,
+	"scripts": {
+		"install:all": "pnpm install && pnpm recursive install",
+		"dev:backend": "cd primary-backend && pnpm dev",
+		"dev:hooks": "cd hooks && pnpm dev",
+		"dev:processor": "cd processor && pnpm dev",
+		"dev:worker": "cd worker && pnpm dev",
+		"dev:frontend": "cd frontend && pnpm dev",
+		"build:all": "pnpm recursive run build",
+		"db:migrate": "cd primary-backend && npx prisma migrate deploy",
+		"db:seed": "cd primary-backend && npx prisma db seed",
+		"db:generate": "pnpm recursive exec npx prisma generate",
+		"dev": "npx concurrently -n \"BACKEND,HOOKS,PROC,WORKER,FRONT\" -c \"bgBlue,bgGreen,bgMagenta,bgCyan,bgYellow\" \"pnpm dev:backend\" \"pnpm dev:hooks\" \"pnpm dev:processor\" \"pnpm dev:worker\" \"pnpm dev:frontend\""
+	},
+	"devDependencies": {
+		"concurrently": "^9.1.2"
 	},
 	"packageManager": "pnpm@10.28.0+sha512.05df71d1421f21399e053fde567cea34d446fa02c76571441bfc1c7956e98e363088982d940465fd34480d4d90a0668bc12362f8aa88000a64e83d0b0e47be48"
 }

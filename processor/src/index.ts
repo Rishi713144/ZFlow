@@ -1,8 +1,11 @@
-import { PrismaClient } from "@prisma/client";
-import {Kafka} from "kafkajs";
-import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
 import "dotenv/config";
+import { Kafka } from "kafkajs";
+import { Pool } from "pg";
+
+if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
+if (!process.env.KAFKA_BROKERS) console.warn("KAFKA_BROKERS not set, defaulting to localhost:9092");
 
 const TOPIC_NAME = "zap-events"
 
@@ -15,19 +18,19 @@ const client = new PrismaClient({ adapter });
 
 const kafka = new Kafka({
     clientId: 'outbox-processor',
-    brokers: ['localhost:9092']
+    brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(',')
 })
 
 async function main() {
-    const producer =  kafka.producer();
+    const producer = kafka.producer();
     await producer.connect();
 
-    while(1) {
+    while (1) {
         const pendingRows = await client.zapRunOutbox.findMany({
-            where :{},
+            where: {},
             take: 10
         })
-        console.log(pendingRows);
+        console.log(`Processing ${pendingRows.length} pending flow runs`);
 
         producer.send({
             topic: TOPIC_NAME,
@@ -36,7 +39,7 @@ async function main() {
                     value: JSON.stringify({ zapRunId: r.zapRunId, stage: 0 })
                 }
             })
-        })  
+        })
 
         await client.zapRunOutbox.deleteMany({
             where: {

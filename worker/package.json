@@ -1,14 +1,20 @@
 {
-  "name": "worker",
+  "name": "@zflow/worker",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Kafka consumer and action executor for ZFlow",
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "tsc -b && node dist/index.js"
+    "dev": "tsc -b && node dist/index.js",
+    "build": "tsc -b",
+    "start": "node dist/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "worker",
+    "zflow",
+    "automation"
+  ],
+  "author": "Rishi713144",
+  "license": "MIT",
   "dependencies": {
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",

@@ -2,9 +2,8 @@
 
 import { BACKEND_URL } from "@/app/config";
 import { Appbar } from "@/components/Appbar";
+import { FlowCell } from "@/components/FlowCell";
 import { Input } from "@/components/Input";
-import { ZapCell } from "@/components/ZapCell";
-import { LinkButton } from "@/components/buttons/LinkButton";
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import axios from "axios";
 import { useRouter } from "next/navigation";
@@ -28,7 +27,7 @@ function useAvailableActionsAndTriggers() {
     }
 }
 
-export default function() {
+export default function () {
     const router = useRouter();
     const { availableActions, availableTriggers } = useAvailableActionsAndTriggers();
     const [selectedTrigger, setSelectedTrigger] = useState<{
@@ -64,19 +63,19 @@ export default function() {
                         Authorization: localStorage.getItem("token")
                     }
                 })
-                
+
                 router.push("/dashboard");
 
             }}>Publish</PrimaryButton>
         </div>
         <div className="w-full min-h-screen bg-slate-200 flex flex-col justify-center">
             <div className="flex justify-center w-full">
-                <ZapCell onClick={() => {
+                <FlowCell onClick={() => {
                     setSelectedModalIndex(1);
                 }} name={selectedTrigger?.name ? selectedTrigger.name : "Trigger"} index={1} />
             </div>
             <div className="w-full pt-2 pb-2">
-                {selectedActions.map((action, index) => <div className="pt-2 flex justify-center"> <ZapCell onClick={() => {
+                {selectedActions.map((action, index) => <div className="pt-2 flex justify-center"> <FlowCell key={index} onClick={() => {
                     setSelectedModalIndex(action.index);
                 }} name={action.availableActionName ? action.availableActionName : "Action"} index={action.index} /> </div>)}
             </div>
@@ -90,8 +89,8 @@ export default function() {
                             metadata: {}
                         }])
                     }}><div className="text-2xl">
-                        +
-                    </div></PrimaryButton>
+                            +
+                        </div></PrimaryButton>
                 </div>
             </div>
         </div>
@@ -122,7 +121,7 @@ export default function() {
     </div>
 }
 
-function Modal({ index, onSelect, availableItems }: { index: number, onSelect: (props: null | { name: string; id: string; metadata: any; }) => void, availableItems: {id: string, name: string, image: string;}[] }) {
+function Modal({ index, onSelect, availableItems }: { index: number, onSelect: (props: null | { name: string; id: string; metadata: any; }) => void, availableItems: { id: string, name: string, image: string; }[] }) {
     const [step, setStep] = useState(0);
     const [selectedAction, setSelectedAction] = useState<{
         id: string;
@@ -141,7 +140,7 @@ function Modal({ index, onSelect, availableItems }: { index: number, onSelect: (
                         onSelect(null);
                     }} type="button" className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" data-modal-hide="default-modal">
                         <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-                            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
                         </svg>
                         <span className="sr-only">Close modal</span>
                     </button>
@@ -161,25 +160,25 @@ function Modal({ index, onSelect, availableItems }: { index: number, onSelect: (
                         })
                     }} />}
 
-                    {step === 0 && <div>{availableItems.map(({id, name, image}) => {
-                            return <div onClick={() => {
-                                if (isTrigger) {
-                                    onSelect({
-                                        id,
-                                        name,
-                                        metadata: {}
-                                    })
-                                } else {
-                                    setStep(s => s + 1);
-                                    setSelectedAction({
-                                        id,
-                                        name
-                                    })
-                                }
-                            }} className="flex border p-4 cursor-pointer hover:bg-slate-100">
-                                <img src={image} width={30} className="rounded-full" /> <div className="flex flex-col justify-center"> {name} </div>
-                            </div>
-                        })}</div>}                    
+                    {step === 0 && <div>{availableItems.map(({ id, name, image }) => {
+                        return <div onClick={() => {
+                            if (isTrigger) {
+                                onSelect({
+                                    id,
+                                    name,
+                                    metadata: {}
+                                })
+                            } else {
+                                setStep(s => s + 1);
+                                setSelectedAction({
+                                    id,
+                                    name
+                                })
+                            }
+                        }} className="flex border p-4 cursor-pointer hover:bg-slate-100">
+                            <img src={image} width={30} className="rounded-full" /> <div className="flex flex-col justify-center"> {name} </div>
+                        </div>
+                    })}</div>}
                 </div>
             </div>
         </div>
@@ -187,7 +186,7 @@ function Modal({ index, onSelect, availableItems }: { index: number, onSelect: (
 
 }
 
-function EmailSelector({setMetadata}: {
+function EmailSelector({ setMetadata }: {
     setMetadata: (params: any) => void;
 }) {
     const [email, setEmail] = useState("");
@@ -207,22 +206,22 @@ function EmailSelector({setMetadata}: {
     </div>
 }
 
-function SolanaSelector({setMetadata}: {
+function SolanaSelector({ setMetadata }: {
     setMetadata: (params: any) => void;
 }) {
     const [amount, setAmount] = useState("");
-    const [address, setAddress] = useState("");    
+    const [address, setAddress] = useState("");
 
     return <div>
         <Input label={"To"} type={"text"} placeholder="To" onChange={(e) => setAddress(e.target.value)}></Input>
         <Input label={"Amount"} type={"text"} placeholder="To" onChange={(e) => setAmount(e.target.value)}></Input>
         <div className="pt-4">
-        <PrimaryButton onClick={() => {
-            setMetadata({
-                amount,
-                address
-            })
-        }}>Submit</PrimaryButton>
+            <PrimaryButton onClick={() => {
+                setMetadata({
+                    amount,
+                    address
+                })
+            }}>Submit</PrimaryButton>
         </div>
     </div>
 }

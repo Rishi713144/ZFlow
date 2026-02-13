@@ -1,8 +1,8 @@
 "use client";
-import { useRouter } from "next/navigation"
-import { LinkButton } from "./buttons/LinkButton"
-import { PrimaryButton } from "./buttons/PrimaryButton";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LinkButton } from "./buttons/LinkButton";
+import { PrimaryButton } from "./buttons/PrimaryButton";
 
 export const Appbar = () => {
     const router = useRouter();
@@ -10,7 +10,7 @@ export const Appbar = () => {
 
     useEffect(() => {
         if (typeof window !== "undefined" && window.localStorage.getItem("token")) {
-             setIsUser(true);
+            setIsUser(true);
         }
     }, [])
 
@@ -18,11 +18,11 @@ export const Appbar = () => {
         <div className="flex flex-col justify-center text-2xl font-extrabold cursor-pointer" onClick={() => {
             router.push("/")
         }}>
-            Zapier
+            ZFlow
         </div>
         <div className="flex">
             <div className="pr-4">
-                <LinkButton onClick={() => {}}>Contact Sales</LinkButton>
+                <LinkButton onClick={() => { }}>Contact Sales</LinkButton>
             </div>
             {!isUser ? <div className="pr-4">
                 <LinkButton onClick={() => {

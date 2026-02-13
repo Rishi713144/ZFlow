@@ -1,11 +1,11 @@
 "use client"
 import { Appbar } from "@/components/Appbar";
 import { DarkButton } from "@/components/buttons/DarkButton";
+import { LinkButton } from "@/components/buttons/LinkButton";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BACKEND_URL, HOOKS_URL } from "../config";
-import { LinkButton } from "@/components/buttons/LinkButton";
-import { useRouter } from "next/navigation";
 
 interface Zap {
     "id": string,
@@ -56,20 +56,20 @@ function useZaps() {
     }
 }
 
-export default function() {
+export default function () {
     const { loading, zaps } = useZaps();
     const router = useRouter();
-    
+
     return <div>
         <Appbar />
         <div className="flex justify-center pt-8">
             <div className="max-w-screen-lg	 w-full">
                 <div className="flex justify-between pr-8 ">
                     <div className="text-2xl font-bold">
-                        My Zaps
+                        My Flows
                     </div>
                     <DarkButton onClick={() => {
-                        router.push("/zap/create");
+                        router.push("/flow/create");
                     }}>Create</DarkButton>
                 </div>
             </div>
@@ -78,16 +78,16 @@ export default function() {
     </div>
 }
 
-function ZapTable({ zaps }: {zaps: Zap[]}) {
+function ZapTable({ zaps }: { zaps: Zap[] }) {
     const router = useRouter();
 
     return <div className="p-8 max-w-screen-lg w-full">
         <div className="flex">
-                <div className="flex-1">Name</div>
-                <div className="flex-1">ID</div>
-                <div className="flex-1">Created at</div>
-                <div className="flex-1">Webhook URL</div>
-                <div className="flex-1">Go</div>
+            <div className="flex-1">Name</div>
+            <div className="flex-1">ID</div>
+            <div className="flex-1">Created at</div>
+            <div className="flex-1">Webhook URL</div>
+            <div className="flex-1">Go</div>
         </div>
         {zaps.map(z => {
             const createdAt = new Date(z.createdAt);
@@ -104,9 +104,9 @@ function ZapTable({ zaps }: {zaps: Zap[]}) {
                 <div className="flex-1">{z.id}</div>
                 <div className="flex-1">{createdAtLabel}</div>
                 <div className="flex-1">{`${HOOKS_URL}/hooks/catch/1/${z.id}`}</div>
-                <div className="flex-1"><LinkButton onClick={() => {
-                        router.push("/zap/" + z.id)
-                    }}>Go</LinkButton></div>
+                <div className="flex-1 text-sm"><LinkButton onClick={() => {
+                    router.push("/flow/" + z.id)
+                }}>Go</LinkButton></div>
             </div>;
         })}
     </div>
