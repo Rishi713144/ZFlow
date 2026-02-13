@@ -16,7 +16,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Coins, Mail, Plus, Trash2, Zap as ZapIcon } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 // Custom Node Components
 const TriggerNode = ({ data }: { data: { label: string } }) => (
@@ -61,23 +61,61 @@ const nodeTypes = {
   action: ActionNode,
 };
 
-export default function FlowBuilder({ onSave }: { onSave: (nodes: Node[], edges: Edge[]) => void }) {
+
+interface AvailableTrigger {
+  id: string;
+  name: string;
+  image: string;
+}
+
+interface AvailableAction {
+  id: string;
+  name: string;
+  image: string;
+}
+
+export default function FlowBuilder({
+  onSave,
+  availableTriggers,
+  availableActions
+}: {
+  onSave: (nodes: Node[], edges: Edge[]) => void,
+  availableTriggers: AvailableTrigger[],
+  availableActions: AvailableAction[]
+}) {
   const initialNodes: Node[] = [
     {
       id: 'trigger-1',
       type: 'trigger',
-      data: { label: 'Webhook' },
+      data: { label: 'Select Trigger' },
       position: { x: 250, y: 5 },
     },
   ];
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([] as Edge[]);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const onConnect = useCallback(
-    (params: Connection | Edge) => setEdges((eds: Edge[]) => addEdge(params, eds)),
+    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges],
   );
+
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    setSelectedNodeId(node.id);
+  }, []);
+
+  const updateNodeData = (id: string, newData: any) => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === id) {
+          return { ...node, data: { ...node.data, ...newData } };
+        }
+        return node;
+      })
+    );
+    setSelectedNodeId(null);
+  };
 
   const addAction = useCallback(() => {
     const id = `action-${nodes.length + 1}`;
@@ -86,47 +124,95 @@ export default function FlowBuilder({ onSave }: { onSave: (nodes: Node[], edges:
       type: 'action',
       data: {
         id,
-        label: 'New Action',
+        label: 'Select Action',
         icon: 'mail',
         onDelete: (id: string) => {
-          setNodes((nds: Node[]) => nds.filter((n: Node) => n.id !== id));
-          setEdges((eds: Edge[]) => eds.filter((e: Edge) => e.source !== id && e.target !== id));
+          setNodes((nds) => nds.filter((n) => n.id !== id));
+          setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
         }
       },
       position: { x: Math.random() * 400, y: nodes.length * 100 + 100 },
     };
-    setNodes((nds: Node[]) => nds.concat(newNode));
+    setNodes((nds) => nds.concat(newNode));
   }, [nodes, setNodes, setEdges, nodes.length]);
 
+  const selectedNode = nodes.find(n => n.id === selectedNodeId);
+
   return (
-    <div className="h-[70vh] w-full border rounded-xl overflow-hidden bg-slate-50 relative">
-      <div className="absolute top-4 right-4 z-10 flex gap-2">
-        <button
-          onClick={addAction}
-          className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow hover:bg-slate-50 border transition-all text-sm font-medium"
+    <div className="h-[70vh] w-full border rounded-xl overflow-hidden bg-slate-50 relative flex">
+      <div className="flex-1 relative">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeClick={onNodeClick}
+          nodeTypes={nodeTypes}
+          fitView
         >
-          <Plus size={16} /> Add Action
-        </button>
-        <button
-          onClick={() => onSave(nodes, edges)}
-          className="flex items-center gap-2 bg-amber-500 text-white px-6 py-2 rounded-lg shadow hover:bg-amber-600 transition-all text-sm font-medium"
-        >
-          Publish Flow
-        </button>
+          <Controls />
+          <MiniMap />
+          <Background gap={20} size={1} />
+        </ReactFlow>
+        <div className="absolute top-4 right-4 z-10 flex gap-2">
+          <button
+            onClick={addAction}
+            className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow hover:bg-slate-50 border transition-all text-sm font-medium"
+          >
+            <Plus size={16} /> Add Action
+          </button>
+          <button
+            onClick={() => onSave(nodes, edges)}
+            className="flex items-center gap-2 bg-amber-500 text-white px-6 py-2 rounded-lg shadow hover:bg-amber-600 transition-all text-sm font-medium"
+          >
+            Publish Flow
+          </button>
+        </div>
       </div>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        nodeTypes={nodeTypes}
-        fitView
-      >
-        <Controls />
-        <MiniMap />
-        <Background gap={20} size={1} />
-      </ReactFlow>
+
+      {selectedNode && (
+        <div className="w-80 bg-white border-l p-4 overflow-y-auto absolute right-0 top-0 bottom-0 z-20 shadow-xl">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-lg">Select {selectedNode.type === 'trigger' ? 'Trigger' : 'Action'}</h3>
+            <button onClick={() => setSelectedNodeId(null)} className="text-gray-500 hover:text-gray-700">Close</button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2">
+            {selectedNode.type === 'trigger' ? (
+              availableTriggers.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => updateNodeData(selectedNode.id, {
+                    label: t.name,
+                    availableTriggerId: t.id,
+                    image: t.image
+                  })}
+                  className="flex items-center gap-3 p-3 border rounded hover:bg-amber-50 hover:border-amber-300 transition-all text-left"
+                >
+                  <img src={t.image} alt={t.name} className="w-8 h-8 rounded-full object-cover" />
+                  <span className="font-medium">{t.name}</span>
+                </button>
+              ))
+            ) : (
+              availableActions.map(a => (
+                <button
+                  key={a.id}
+                  onClick={() => updateNodeData(selectedNode.id, {
+                    label: a.name,
+                    availableActionId: a.id,
+                    image: a.image
+                  })}
+                  className="flex items-center gap-3 p-3 border rounded hover:bg-blue-50 hover:border-blue-300 transition-all text-left"
+                >
+                  <img src={a.image} alt={a.name} className="w-8 h-8 rounded-full object-cover" />
+                  <span className="font-medium">{a.name}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

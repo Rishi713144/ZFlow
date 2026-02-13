@@ -54,11 +54,16 @@ router.post("/signup", async (req, res) => {
         }
     })
 
-    await sendEmail(
-        user.email,
-        "Verify your account",
-        `Please verify your account by clicking here: ${process.env.FRONTEND_URL}/verify?token=${token}`
-    );
+    try {
+        await sendEmail(
+            user.email,
+            "Verify your account",
+            `Please verify your account by clicking here: ${process.env.FRONTEND_URL}/verify?token=${token}`
+        );
+    } catch (e) {
+        console.error("Failed to send email:", e);
+        console.log(`Open this link to verify: ${process.env.FRONTEND_URL}/verify?token=${token}`); // Fallback for dev
+    }
 
     return res.json({
         message: "Please verify your account by checking your email"

@@ -1,3 +1,4 @@
+"use client";
 import { BACKEND_URL } from "@/app/config";
 import { Appbar } from "@/components/Appbar";
 import FlowBuilder from "@/components/FlowBuilder";
@@ -25,9 +26,11 @@ function useAvailableActionsAndTriggers() {
     useEffect(() => {
         axios.get(`${BACKEND_URL}/api/v1/trigger/available`)
             .then(x => setAvailableTriggers(x.data.availableTriggers))
+            .catch(e => console.error("Trigger fetch failed:", e.message));
 
         axios.get(`${BACKEND_URL}/api/v1/action/available`)
             .then(x => setAvailableActions(x.data.availableActions))
+            .catch(e => console.error("Action fetch failed:", e.message));
     }, [])
 
     return {
@@ -39,8 +42,6 @@ function useAvailableActionsAndTriggers() {
 export default function CreateFlow() {
     const router = useRouter();
     const { availableActions, availableTriggers } = useAvailableActionsAndTriggers();
-    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-    const [selectedModalType, setSelectedModalType] = useState<"trigger" | "action" | null>(null);
 
     const handleSave = async (nodes: Node[], edges: Edge[]) => {
         const triggerNode = nodes.find(n => n.type === 'trigger');
@@ -93,7 +94,7 @@ export default function CreateFlow() {
                     </div>
                 </div>
 
-                <FlowBuilder onSave={handleSave} />
+                <FlowBuilder onSave={handleSave} availableTriggers={availableTriggers} availableActions={availableActions} />
             </div>
         </div>
     );
