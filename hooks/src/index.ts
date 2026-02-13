@@ -1,7 +1,7 @@
-import express from "express"
-import {PrismaClient } from "@prisma/client";
-import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
+import express from "express";
+import { Pool } from "pg";
 
 const connectionString = `${process.env.DATABASE_URL}`;
 
@@ -13,8 +13,7 @@ const client = new PrismaClient({ adapter });
 const app = express();
 app.use(express.json());
 
-// https://hooks.zapier.com/hooks/catch/17043103/22b8496/
-// password logic
+// Webhook receiver endpoint
 app.post("/hooks/catch/:userId/:zapId", async (req, res) => {
     const userId = req.params.userId;
     const zapId = req.params.zapId;

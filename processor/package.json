@@ -1,14 +1,20 @@
 {
-  "name": "processor",
+  "name": "@zflow/processor",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Transactional outbox processor for ZFlow",
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "tsc -b && node dist/index.js"
+    "dev": "tsc -b && node dist/index.js",
+    "build": "tsc -b",
+    "start": "node dist/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "kafka",
+    "processor",
+    "zflow"
+  ],
+  "author": "Rishi713144",
+  "license": "MIT",
   "dependencies": {
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",

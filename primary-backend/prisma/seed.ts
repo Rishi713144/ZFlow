@@ -1,9 +1,10 @@
 
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
-import { PrismaPg } from "@prisma/adapter-pg";
 
-const connectionString = `${process.env.DATABASE_URL}`;
+if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
+const connectionString = process.env.DATABASE_URL;
 
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
@@ -16,9 +17,9 @@ async function main() {
             id: "webhook",
             name: "Webhook",
             image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRIovxkR9l-OlwpjTXV1B4YNh0W_s618ijxAQ&s",
-            
+
         }
-    })    
+    })
 
     await prismaClient.availableAction.create({
         data: {
@@ -35,7 +36,7 @@ async function main() {
             image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ4nd82eFk5SaBPRIeCpmwL7A4YSokA-kXSmw&s"
         }
     })
-    
+
 }
 
 main();

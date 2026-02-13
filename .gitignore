@@ -17,7 +17,13 @@ dist/
 
 # Environment Variables
 .env
-.env*.local
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+.env.production
+.env.development
 
 # Vercel
 .vercel
@@ -25,3 +31,10 @@ dist/
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated Prisma client
+**/src/generated/
+
+# IDE
+.vscode/
+.idea/
