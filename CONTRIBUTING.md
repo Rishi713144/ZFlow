@@ -8,7 +8,7 @@ This document provides guidelines and information to help you contribute effecti
 
 ## 📋 Table of Contents
 
-- [Code of Conduct](#-code-of-conduct)
+
 - [How Can I Contribute?](#-how-can-i-contribute)
 - [Development Setup](#-development-setup)
 - [Project Structure](#-project-structure)
@@ -20,11 +20,7 @@ This document provides guidelines and information to help you contribute effecti
 
 ---
 
-## 📜 Code of Conduct
 
-This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to the project maintainers.
-
----
 
 ## 🤝 How Can I Contribute?
 
@@ -47,21 +43,7 @@ Feature suggestions are welcome! Please open an issue with the **Feature Request
 - **Alternatives considered** — Any other approaches?
 - **Additional context** — Mockups, examples, etc.
 
-### 🔧 Code Contributions
 
-1. Look for issues labeled [`good first issue`](../../issues?q=label%3A%22good+first+issue%22) or [`help wanted`](../../issues?q=label%3A%22help+wanted%22)
-2. Comment on the issue to let maintainers know you're working on it
-3. Follow the [Development Setup](#-development-setup) and [Pull Request Process](#-pull-request-process)
-
-### 📖 Documentation
-
-Documentation improvements are always appreciated! This includes:
-- Fixing typos or broken links
-- Adding code examples
-- Improving clarity of existing docs
-- Adding new guides or tutorials
-
----
 
 ## 🛠️ Development Setup
 
@@ -211,7 +193,7 @@ ZFlow/
 │   └── PULL_REQUEST_TEMPLATE.md
 │
 ├── CONTRIBUTING.md           # ← You are here
-├── CODE_OF_CONDUCT.md        # Community standards
+
 ├── LICENSE                   # MIT License
 └── README.md                 # Project overview & setup
 ```
@@ -271,14 +253,11 @@ ZFlow/
 
 - **Never hardcode secrets** — always use `process.env`
 - Add new variables to the appropriate `.env.example` file
-- Document new variables in the README's [Environment Variables](README.md#-environment-variables) section
+- Document new variables in the README.
 - Validate required env vars at startup
 
 ---
 
-## 📝 Commit Convention
-
-We follow [Conventional Commits](https://www.conventionalcommits.org/) to keep our git history clean and generate changelogs automatically.
 
 ### Format
 
@@ -383,38 +362,6 @@ Your PR will be reviewed for:
 | `enhancement`        | Improvement to existing feature      |
 | `question`           | Further information requested        |
 | `wontfix`            | Will not be worked on                |
-
----
-
-## 🎯 Areas Open for Contribution
-
-Looking for something to work on? Here are some areas where we'd love help:
-
-### 🟢 Good First Issues
-
-- Add input validation to the hooks webhook endpoint
-- Add TypeScript strict mode to all `tsconfig.json` files
-- Replace `// @ts-ignore` comments with proper type definitions
-- Add API response type definitions
-
-### 🟡 Medium Difficulty
-
-- **Password hashing** — Replace plaintext password storage with bcrypt
-- **Email verification** — Add email verification flow on signup
-- **Password reset** — Implement forgot password via email
-- **Docker Compose** — Create a `docker-compose.yml` for one-command setup
-- **API rate limiting** — Add rate limiting to auth endpoints
-- **Logging** — Add structured logging (e.g., with Winston or Pino)
-- **Health checks** — Add `/health` endpoints to all services
-
-### 🔴 Advanced
-
-- **React Flow integration** — Build a visual workflow builder UI
-- **Parallel actions** — Support executing actions in parallel instead of sequentially
-- **Solana reconciliation** — Handle crash recovery for in-flight Solana transactions
-- **Plugin system** — Create an extensible architecture for custom action types
-- **Comprehensive test suite** — Unit and integration tests for all services
-- **CI/CD pipeline** — GitHub Actions for linting, testing, and deployment
 
 ---
 

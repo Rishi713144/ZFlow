@@ -117,7 +117,7 @@ cp worker/.env.example worker/.env
 
 > ⚠️ **Important:** Never commit `.env` files. They are already in `.gitignore`.
 
-See [Environment Variables](#-environment-variables) for a full reference.
+
 
 ### 3. Install Dependencies
 
@@ -186,43 +186,6 @@ The app will be available at **http://localhost:3000**.
 
 ---
 
-## 🔐 Environment Variables
-
-Below is a reference of all required environment variables per service. Create a `.env` file in each service directory.
-
-### `primary-backend/.env`
-
-| Variable       | Description                     | Example                                              |
-| -------------- | ------------------------------- | ---------------------------------------------------- |
-| `DATABASE_URL` | PostgreSQL connection string    | `postgresql://postgres:password@localhost:5432/zflow`|
-| `JWT_PASSWORD` | Secret key for signing JWTs     | `your-strong-secret-key-here`                        |
-
-### `hooks/.env`
-
-| Variable       | Description                     | Example                                              |
-| -------------- | ------------------------------- | ---------------------------------------------------- |
-| `DATABASE_URL` | PostgreSQL connection string    | `postgresql://postgres:password@localhost:5432/zflow`|
-
-### `processor/.env`
-
-| Variable        | Description                     | Example                                              |
-| --------------- | ------------------------------- | ---------------------------------------------------- |
-| `DATABASE_URL`  | PostgreSQL connection string    | `postgresql://postgres:password@localhost:5432/zapier`|
-| `KAFKA_BROKERS` | Comma-separated Kafka brokers   | `localhost:9092`                                     |
-
-### `worker/.env`
-
-| Variable          | Description                              | Example                                              |
-| ----------------- | ---------------------------------------- | ---------------------------------------------------- |
-| `DATABASE_URL`    | PostgreSQL connection string             | `postgresql://postgres:password@localhost:5432/zapier`|
-| `KAFKA_BROKERS`   | Comma-separated Kafka brokers            | `localhost:9092`                                     |
-| `SOL_PRIVATE_KEY`  | Base58-encoded Solana wallet private key | *(your key)*                                         |
-| `SMTP_ENDPOINT`   | SMTP server hostname                     | `smtp.gmail.com`                                     |
-| `SMTP_USERNAME`   | SMTP authentication username             | `you@example.com`                                    |
-| `SMTP_PASSWORD`   | SMTP authentication password             | *(your password)*                                    |
-| `SMTP_FROM_EMAIL` | Sender email address                     | `noreply@yourdomain.com`                             |
-
----
 
 ## 📡 API Reference
 
@@ -308,7 +271,7 @@ ZFlow/
 │       ├── solana.ts      # Solana transfer logic
 │       └── parser.ts      # Template variable parser
 ├── CONTRIBUTING.md        # Contribution guidelines
-├── CODE_OF_CONDUCT.md     # Community code of conduct
+
 ├── LICENSE                # MIT License
 └── README.md                 # Project overview & setup
 ```
@@ -323,18 +286,21 @@ Please read our **[Contributing Guide](CONTRIBUTING.md)** before submitting a pu
 
 ---
 
-## 📝 Roadmap
+## ✨ Features (Implemented)
 
-- [ ] 🔑 Email verification on signup
-- [ ] 🔄 Password reset via email
-- [ ] #️⃣ Password hashing (bcrypt)
-- [ ] 🎨 React Flow integration for visual workflow builder
-- [ ] 🔀 Parallel action execution
-- [ ] 💾 Solana transaction reconciliation (crash recovery)
-- [ ] 🐳 Docker Compose for one-command setup
-- [ ] ✅ Comprehensive test suite
-- [ ] 📊 Monitoring and logging dashboard
-- [ ] 🔌 Plugin system for custom actions
+- [x] 🔑 **Email Verification** — Secure signup with verification tokens
+- [x] 🔄 **Password Reset** — Self-service password recovery flow
+- [x] 🔐 **Secure Auth** — Password hashing with bcrypt for user security
+- [x] 🎨 **Visual Builder** — Interactive **React Flow** canvas for designing Zaps
+- [x] 🔀 **Parallel Actions** — Branching workflows with stage-based execution
+- [x] 🛡️ **Blockchain Replay Prevention** — Signature tracking & reconciliation for Solana
+- [x] 🐳 **Infrastructure-as-Code** — Ready-to-use Docker Compose setup
+
+## 📝 Roadmap (Upcoming)
+
+- [ ] ✅ Comprehensive unit & integration test suite
+- [ ] 📊 Real-time monitoring and execution logs
+- [ ] 🔌 Extensible plugin system for custom integrations
 
 ---
 
@@ -346,7 +312,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 ## 🙏 Acknowledgments
 
-- Inspired by [Zapier](https://zapier.com/) and the automation-first workflow philosophy
+- Inspired by Zapier and the automation-first workflow philosophy
 - Built with love by the open-source community
 
 ---

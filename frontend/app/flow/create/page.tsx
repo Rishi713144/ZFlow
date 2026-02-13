@@ -1,17 +1,26 @@
-"use client";
-
 import { BACKEND_URL } from "@/app/config";
 import { Appbar } from "@/components/Appbar";
-import { FlowCell } from "@/components/FlowCell";
-import { Input } from "@/components/Input";
-import { PrimaryButton } from "@/components/buttons/PrimaryButton";
+import FlowBuilder from "@/components/FlowBuilder";
+import { Edge, Node } from "@xyflow/react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+interface AvailableTrigger {
+    id: string;
+    name: string;
+    image: string;
+}
+
+interface AvailableAction {
+    id: string;
+    name: string;
+    image: string;
+}
+
 function useAvailableActionsAndTriggers() {
-    const [availableActions, setAvailableActions] = useState([]);
-    const [availableTriggers, setAvailableTriggers] = useState([]);
+    const [availableActions, setAvailableActions] = useState<AvailableAction[]>([]);
+    const [availableTriggers, setAvailableTriggers] = useState<AvailableTrigger[]>([]);
 
     useEffect(() => {
         axios.get(`${BACKEND_URL}/api/v1/trigger/available`)
@@ -27,201 +36,65 @@ function useAvailableActionsAndTriggers() {
     }
 }
 
-export default function () {
+export default function CreateFlow() {
     const router = useRouter();
     const { availableActions, availableTriggers } = useAvailableActionsAndTriggers();
-    const [selectedTrigger, setSelectedTrigger] = useState<{
-        id: string;
-        name: string;
-    }>();
+    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+    const [selectedModalType, setSelectedModalType] = useState<"trigger" | "action" | null>(null);
 
-    const [selectedActions, setSelectedActions] = useState<{
-        index: number;
-        availableActionId: string;
-        availableActionName: string;
-        metadata: any;
-    }[]>([]);
-    const [selectedModalIndex, setSelectedModalIndex] = useState<null | number>(null);
+    const handleSave = async (nodes: Node[], edges: Edge[]) => {
+        const triggerNode = nodes.find(n => n.type === 'trigger');
+        if (!triggerNode) return alert("Please add a trigger");
 
-    return <div>
-        <Appbar />
-        <div className="flex justify-end bg-slate-200 p-4">
-            <PrimaryButton onClick={async () => {
-                if (!selectedTrigger?.id) {
-                    return;
+        // Calculate stages (levels) for actions
+        const actionNodes = nodes.filter(n => n.type === 'action');
+        const stages: Record<string, number> = {};
+
+        // BFS to find levels from trigger
+        let queue = [{ id: triggerNode.id, level: -1 }];
+        while (queue.length > 0) {
+            const { id, level } = queue.shift()!;
+            const children = edges.filter(e => e.source === id).map(e => e.target);
+            for (const childId of children) {
+                if (!(childId in stages) || stages[childId] < level + 1) {
+                    stages[childId] = level + 1;
+                    queue.push({ id: childId, level: level + 1 });
                 }
-
-                const response = await axios.post(`${BACKEND_URL}/api/v1/zap`, {
-                    "availableTriggerId": selectedTrigger.id,
-                    "triggerMetadata": {},
-                    "actions": selectedActions.map(a => ({
-                        availableActionId: a.availableActionId,
-                        actionMetadata: a.metadata
-                    }))
-                }, {
-                    headers: {
-                        Authorization: localStorage.getItem("token")
-                    }
-                })
-
-                router.push("/dashboard");
-
-            }}>Publish</PrimaryButton>
-        </div>
-        <div className="w-full min-h-screen bg-slate-200 flex flex-col justify-center">
-            <div className="flex justify-center w-full">
-                <FlowCell onClick={() => {
-                    setSelectedModalIndex(1);
-                }} name={selectedTrigger?.name ? selectedTrigger.name : "Trigger"} index={1} />
-            </div>
-            <div className="w-full pt-2 pb-2">
-                {selectedActions.map((action, index) => <div className="pt-2 flex justify-center"> <FlowCell key={index} onClick={() => {
-                    setSelectedModalIndex(action.index);
-                }} name={action.availableActionName ? action.availableActionName : "Action"} index={action.index} /> </div>)}
-            </div>
-            <div className="flex justify-center">
-                <div>
-                    <PrimaryButton onClick={() => {
-                        setSelectedActions(a => [...a, {
-                            index: a.length + 2,
-                            availableActionId: "",
-                            availableActionName: "",
-                            metadata: {}
-                        }])
-                    }}><div className="text-2xl">
-                            +
-                        </div></PrimaryButton>
-                </div>
-            </div>
-        </div>
-        {selectedModalIndex && <Modal availableItems={selectedModalIndex === 1 ? availableTriggers : availableActions} onSelect={(props: null | { name: string; id: string; metadata: any; }) => {
-            if (props === null) {
-                setSelectedModalIndex(null);
-                return;
             }
-            if (selectedModalIndex === 1) {
-                setSelectedTrigger({
-                    id: props.id,
-                    name: props.name
-                })
-            } else {
-                setSelectedActions(a => {
-                    let newActions = [...a];
-                    newActions[selectedModalIndex - 2] = {
-                        index: selectedModalIndex,
-                        availableActionId: props.id,
-                        availableActionName: props.name,
-                        metadata: props.metadata
-                    }
-                    return newActions
-                })
-            }
-            setSelectedModalIndex(null);
-        }} index={selectedModalIndex} />}
-    </div>
-}
+        }
 
-function Modal({ index, onSelect, availableItems }: { index: number, onSelect: (props: null | { name: string; id: string; metadata: any; }) => void, availableItems: { id: string, name: string, image: string; }[] }) {
-    const [step, setStep] = useState(0);
-    const [selectedAction, setSelectedAction] = useState<{
-        id: string;
-        name: string;
-    }>();
-    const isTrigger = index === 1;
+        try {
+            await axios.post(`${BACKEND_URL}/api/v1/zap`, {
+                availableTriggerId: triggerNode.data.availableTriggerId || "webhook", // Default
+                triggerMetadata: triggerNode.data.metadata || {},
+                actions: actionNodes.map((a) => ({
+                    availableActionId: a.data.availableActionId || "email", // Default
+                    actionMetadata: a.data.metadata || {},
+                    sortingOrder: stages[a.id] ?? 0
+                }))
+            }, {
+                headers: { Authorization: localStorage.getItem("token") }
+            });
+            router.push("/dashboard");
+        } catch (e) {
+            console.error(e);
+            alert("Failed to publish workflow");
+        }
+    };
 
-    return <div className="fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full bg-slate-100 bg-opacity-70 flex">
-        <div className="relative p-4 w-full max-w-2xl max-h-full">
-            <div className="relative bg-white rounded-lg shadow ">
-                <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t ">
-                    <div className="text-xl">
-                        Select {index === 1 ? "Trigger" : "Action"}
+    return (
+        <div className="bg-slate-50 min-h-screen">
+            <Appbar />
+            <div className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Create your Flow</h1>
+                        <p className="text-slate-500 mt-1">Design and automate your workflows with ease.</p>
                     </div>
-                    <button onClick={() => {
-                        onSelect(null);
-                    }} type="button" className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" data-modal-hide="default-modal">
-                        <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-                            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
-                        </svg>
-                        <span className="sr-only">Close modal</span>
-                    </button>
                 </div>
-                <div className="p-4 md:p-5 space-y-4">
-                    {step === 1 && selectedAction?.id === "email" && <EmailSelector setMetadata={(metadata) => {
-                        onSelect({
-                            ...selectedAction,
-                            metadata
-                        })
-                    }} />}
 
-                    {(step === 1 && selectedAction?.id === "send-sol") && <SolanaSelector setMetadata={(metadata) => {
-                        onSelect({
-                            ...selectedAction,
-                            metadata
-                        })
-                    }} />}
-
-                    {step === 0 && <div>{availableItems.map(({ id, name, image }) => {
-                        return <div onClick={() => {
-                            if (isTrigger) {
-                                onSelect({
-                                    id,
-                                    name,
-                                    metadata: {}
-                                })
-                            } else {
-                                setStep(s => s + 1);
-                                setSelectedAction({
-                                    id,
-                                    name
-                                })
-                            }
-                        }} className="flex border p-4 cursor-pointer hover:bg-slate-100">
-                            <img src={image} width={30} className="rounded-full" /> <div className="flex flex-col justify-center"> {name} </div>
-                        </div>
-                    })}</div>}
-                </div>
+                <FlowBuilder onSave={handleSave} />
             </div>
         </div>
-    </div>
-
-}
-
-function EmailSelector({ setMetadata }: {
-    setMetadata: (params: any) => void;
-}) {
-    const [email, setEmail] = useState("");
-    const [body, setBody] = useState("");
-
-    return <div>
-        <Input label={"To"} type={"text"} placeholder="To" onChange={(e) => setEmail(e.target.value)}></Input>
-        <Input label={"Body"} type={"text"} placeholder="Body" onChange={(e) => setBody(e.target.value)}></Input>
-        <div className="pt-2">
-            <PrimaryButton onClick={() => {
-                setMetadata({
-                    email,
-                    body
-                })
-            }}>Submit</PrimaryButton>
-        </div>
-    </div>
-}
-
-function SolanaSelector({ setMetadata }: {
-    setMetadata: (params: any) => void;
-}) {
-    const [amount, setAmount] = useState("");
-    const [address, setAddress] = useState("");
-
-    return <div>
-        <Input label={"To"} type={"text"} placeholder="To" onChange={(e) => setAddress(e.target.value)}></Input>
-        <Input label={"Amount"} type={"text"} placeholder="To" onChange={(e) => setAmount(e.target.value)}></Input>
-        <div className="pt-4">
-            <PrimaryButton onClick={() => {
-                setMetadata({
-                    amount,
-                    address
-                })
-            }}>Submit</PrimaryButton>
-        </div>
-    </div>
+    );
 }

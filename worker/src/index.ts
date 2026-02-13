@@ -4,10 +4,10 @@ if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
 if (!process.env.KAFKA_BROKERS) console.warn("KAFKA_BROKERS not set, defaulting to localhost:9092");
 
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Prisma, PrismaClient } from "@prisma/client";
 import { Kafka } from "kafkajs";
 import { Pool } from "pg";
 import { sendEmail } from "./email";
+import { Prisma, PrismaClient } from "./generated/client";
 import { parse } from "./parser";
 import { sendSol } from "./solana";
 
@@ -44,21 +44,32 @@ async function main() {
         return;
       }
 
-      const parsedValue = JSON.parse(message.value?.toString());
+      const parsedValue: { zapRunId: string, stage: number } = JSON.parse(message.value?.toString());
       const zapRunId = parsedValue.zapRunId;
       const stage = parsedValue.stage;
 
-      const zapRunDetails = await prismaClient.zapRun.findFirst({
+      // Idempotency check
+      const existingStatus = await prismaClient.zapRunAction.findUnique({
         where: {
-          id: zapRunId
-        },
+          zapRunId_stage: {
+            zapRunId,
+            stage
+          }
+        }
+      });
+
+      if (existingStatus?.status === "SUCCESS") {
+        console.log(`Action for zapRunId ${zapRunId} at stage ${stage} already completed. Skipping.`);
+        return;
+      }
+
+      const zapRunDetails = await prismaClient.zapRun.findFirst({
+        where: { id: zapRunId },
         include: {
           zap: {
             include: {
               actions: {
-                include: {
-                  type: true
-                }
+                include: { type: true }
               }
             }
           },
@@ -66,30 +77,50 @@ async function main() {
       });
       const currentAction = zapRunDetails?.zap.actions.find(x => x.sortingOrder === stage);
 
-      if (!currentAction) {
-        console.log("Current action not found?");
+      if (!currentAction || !zapRunDetails) {
+        console.log("Current action or zap run details not found?");
         return;
       }
 
-      const zapRunMetadata = zapRunDetails?.metadata;
+      const zapRunMetadata = zapRunDetails.metadata;
 
-      if (currentAction.type.id === "email") {
-        const body = parse((currentAction.metadata as Prisma.JsonObject)?.body as string, zapRunMetadata);
-        const to = parse((currentAction.metadata as Prisma.JsonObject)?.email as string, zapRunMetadata);
-        console.log(`Sending out email to ${to} body is ${body}`)
-        await sendEmail(to, body);
+      try {
+        if (currentAction.type.id === "email") {
+          const body = parse((currentAction.metadata as Prisma.JsonObject)?.body as string || "", zapRunMetadata);
+          const to = parse((currentAction.metadata as Prisma.JsonObject)?.email as string || "", zapRunMetadata);
+          console.log(`Sending out email to ${to} body is ${body}`)
+          await sendEmail(to, body);
+        }
+
+        if (currentAction.type.id === "send-sol") {
+          const amount = parse((currentAction.metadata as Prisma.JsonObject)?.amount as string || "", zapRunMetadata);
+          const address = parse((currentAction.metadata as Prisma.JsonObject)?.address as string || "", zapRunMetadata);
+          console.log(`Sending out SOL of ${amount} to address ${address}`);
+          const signature = await sendSol(address, amount);
+
+          await prismaClient.zapRunAction.upsert({
+            where: { zapRunId_stage: { zapRunId, stage } },
+            update: { status: "SUCCESS", signature },
+            create: { zapRunId, stage, status: "SUCCESS", signature }
+          });
+        }
+
+        if (currentAction.type.id !== "send-sol") {
+          await prismaClient.zapRunAction.upsert({
+            where: { zapRunId_stage: { zapRunId, stage } },
+            update: { status: "SUCCESS" },
+            create: { zapRunId, stage, status: "SUCCESS" }
+          });
+        }
+      } catch (e) {
+        console.error("Failed to execute action", e);
+        await prismaClient.zapRunAction.upsert({
+          where: { zapRunId_stage: { zapRunId, stage } },
+          update: { status: "FAILED" },
+          create: { zapRunId, stage, status: "FAILED" }
+        });
+        return; // Don't proceed to next stage if this one failed
       }
-
-      if (currentAction.type.id === "send-sol") {
-
-        const amount = parse((currentAction.metadata as Prisma.JsonObject)?.amount as string, zapRunMetadata);
-        const address = parse((currentAction.metadata as Prisma.JsonObject)?.address as string, zapRunMetadata);
-        console.log(`Sending out SOL of ${amount} to address ${address}`);
-        await sendSol(address, amount);
-      }
-
-      // 
-      await new Promise(r => setTimeout(r, 500));
 
       const lastStage = (zapRunDetails?.zap.actions?.length || 1) - 1; // 1
       console.log(lastStage);

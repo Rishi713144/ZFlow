@@ -15,7 +15,7 @@ export async function sendSol(to: string, amount: string) {
     })
   );
 
-  await sendAndConfirmTransaction(connection, transferTransaction, [keypair]);
-  console.log("sol Sent!")
-
+  const signature = await sendAndConfirmTransaction(connection, transferTransaction, [keypair]);
+  console.log("sol Sent!");
+  return signature;
 }

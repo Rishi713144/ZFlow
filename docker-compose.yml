@@ -2,9 +2,9 @@ services:
   postgres:
     image: postgres:14-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: zflow
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-zflow}
     ports:
       - "5432:5432"
 
@@ -29,7 +29,7 @@ services:
       context: ./primary-backend
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: postgresql://postgres:password@postgres:5432/zflow
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-zflow}
       JWT_PASSWORD: ${JWT_PASSWORD:-change-me-in-production}
     ports:
       - "3001:3001"
@@ -41,7 +41,7 @@ services:
       context: ./hooks
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: postgresql://postgres:password@postgres:5432/zflow
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-zflow}
     ports:
       - "3002:3002"
     depends_on:
@@ -52,7 +52,7 @@ services:
       context: ./processor
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: postgresql://postgres:password@postgres:5432/zflow
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-zflow}
       KAFKA_BROKERS: kafka:9092
     depends_on:
       - postgres
@@ -63,7 +63,7 @@ services:
       context: ./worker
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: postgresql://postgres:password@postgres:5432/zflow
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-zflow}
       KAFKA_BROKERS: kafka:9092
       SOL_PRIVATE_KEY: ${SOL_PRIVATE_KEY}
       SMTP_ENDPOINT: ${SMTP_ENDPOINT}

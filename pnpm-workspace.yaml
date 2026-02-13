@@ -1,0 +1,6 @@
+packages:
+  - 'primary-backend'
+  - 'hooks'
+  - 'processor'
+  - 'worker'
+  - 'frontend'
