@@ -1,89 +1,136 @@
+version: '3.8'
+
 services:
   postgres:
-    image: postgres:14-alpine
+    image: postgres:15-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-      POSTGRES_DB: ${POSTGRES_DB:-zflow}
-    ports:
-      - "5432:5432"
+      - POSTGRES_USER=${DB_USER:-user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+      - POSTGRES_DB=${DB_NAME:-zflow}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - zflow_network
 
   zookeeper:
-    image: wurstmeister/zookeeper
-    ports:
-      - "2181:2181"
+    image: bitnami/zookeeper:latest
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    restart: always
+    networks:
+      - zflow_network
 
   kafka:
-    image: wurstmeister/kafka
-    ports:
-      - "9092:9092"
+    image: bitnami/kafka:latest
     environment:
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_ANONYMOUS_LOGIN=yes
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
     depends_on:
       - zookeeper
+    restart: always
+    networks:
+      - zflow_network
 
   primary-backend:
     build:
       context: ./primary-backend
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-zflow}
-      JWT_PASSWORD: ${JWT_PASSWORD:-change-me-in-production}
-    ports:
-      - "3001:3001"
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - KAFKA_BROKERS=kafka:9092
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.zflow-backend.rule=Host(`${BACKEND_DOMAIN}`)"
+      - "traefik.http.routers.zflow-backend.entrypoints=websecure"
+      - "traefik.http.routers.zflow-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.zflow-backend.loadbalancer.server.port=3001"
     depends_on:
       - postgres
+      - kafka
+    restart: always
+    networks:
+      - zflow_network
 
   hooks:
     build:
       context: ./hooks
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-zflow}
-    ports:
-      - "3002:3002"
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      - KAFKA_BROKERS=kafka:9092
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.zflow-hooks.rule=Host(`${HOOKS_DOMAIN}`)"
+      - "traefik.http.routers.zflow-hooks.entrypoints=websecure"
+      - "traefik.http.routers.zflow-hooks.tls.certresolver=letsencrypt"
+      - "traefik.http.services.zflow-hooks.loadbalancer.server.port=3002"
     depends_on:
       - postgres
+      - kafka
+    restart: always
+    networks:
+      - zflow_network
 
   processor:
     build:
       context: ./processor
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-zflow}
-      KAFKA_BROKERS: kafka:9092
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      - KAFKA_BROKERS=kafka:9092
     depends_on:
       - postgres
       - kafka
+    restart: always
+    networks:
+      - zflow_network
 
   worker:
     build:
       context: ./worker
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-zflow}
-      KAFKA_BROKERS: kafka:9092
-      SOL_PRIVATE_KEY: ${SOL_PRIVATE_KEY}
-      SMTP_ENDPOINT: ${SMTP_ENDPOINT}
-      SMTP_USERNAME: ${SMTP_USERNAME}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
-      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.mainnet-beta.solana.com}
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      - KAFKA_BROKERS=kafka:9092
+      - SOL_PRIVATE_KEY=${SOL_PRIVATE_KEY}
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL}
+      - SMTP_ENDPOINT=${SMTP_ENDPOINT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
     depends_on:
       - postgres
       - kafka
+    restart: always
+    networks:
+      - zflow_network
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      NEXT_PUBLIC_BACKEND_URL: http://localhost:3001
-      NEXT_PUBLIC_HOOKS_URL: http://localhost:3002
-    ports:
-      - "3000:3000"
+      - NEXT_PUBLIC_BACKEND_URL=${PUBLIC_BACKEND_URL}
+      - NEXT_PUBLIC_HOOKS_URL=${PUBLIC_HOOKS_URL}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.zflow-frontend.rule=Host(`${FRONTEND_DOMAIN}`)"
+      - "traefik.http.routers.zflow-frontend.entrypoints=websecure"
+      - "traefik.http.routers.zflow-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.zflow-frontend.loadbalancer.server.port=3000"
     depends_on:
       - primary-backend
-      - hooks
+    restart: always
+    networks:
+      - zflow_network
+
+networks:
+  zflow_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

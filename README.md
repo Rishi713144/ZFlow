@@ -1,14 +1,16 @@
 <p align="center">
   <h1 align="center">⚡ ZFlow</h1>
   <p align="center">
-    A self-hosted workflow automation platform — trigger webhooks, chain actions, send emails, and transfer SOL, all through a clean, modern UI.
+    <strong>A professional, self-hosted workflow automation platform.</strong>
   </p>
   <p align="center">
-    <a href="#-getting-started">Getting Started</a> •
+    Trigger webhooks, chain multi-stage actions, send automated emails, and execute Solana blockchain transfers—all through a unified, modern interface.
+  </p>
+  <p align="center">
+    <a href="#-overview">Overview</a> •
     <a href="#-architecture">Architecture</a> •
-    <a href="#-api-reference">API Reference</a> •
-    <a href="#-contributing">Contributing</a> •
-    <a href="#-license">License</a>
+    <a href="#-getting-started">Getting Started</a> •
+    <a href="#-contributing">Contributing</a>
   </p>
 </p>
 
@@ -16,307 +18,154 @@
 
 ## 📖 Overview
 
-ZFlow is an **open-source workflow automation engine** that allows users to create automated workflows consisting of a **trigger** and one or more **actions**. When a webhook is received, the system processes the event through a Kafka-based pipeline and executes each action in sequence.
+ZFlow is a high-performance automation engine designed for reliability and scale. Built on a microservices architecture, it allows users to create **Zaps**—automated workflows that combine a single trigger with sequential actions.
 
 ### ✨ Key Features
 
-- 🔗 **Webhook Triggers** — Create webhook URLs that trigger automated workflows
-- 📧 **Email Actions** — Send templated emails with dynamic data from trigger payloads
-- 💸 **Solana Transfers** — Automate SOL transfers on the Solana blockchain
-- 🔄 **Sequential Action Pipeline** — Chain multiple actions using Kafka for reliable processing
-- 🎨 **Modern Frontend** — Built with Next.js and Tailwind CSS for a responsive UI
-- 🔒 **JWT Authentication** — Secure user authentication and authorization
-- 🗄️ **Transactional Outbox Pattern** — Reliable event processing with PostgreSQL + Kafka
+- 🔗 **Webhook Triggers** — Instantly trigger workflows from any external service.
+- 📧 **Native Email Integration** — Send templated, dynamic emails using incoming trigger data.
+- 💸 **Solana Automated Transfers** — Execute SOL transfers on-chain automatically.
+- 🔄 **Sequential Pipeline** — Chain multiple actions using **Kafka** for resilient processing.
+- 🎨 **Visual Builder** — An intuitive canvas for designing complex logic visually.
+- 🔒 **Enterprise-Grade Reliability** — Implements the **Transactional Outbox Pattern** to ensure no event is ever lost.
+
+---
+
+## 📂 Project Structure
+
+ZFlow is organized as a monorepo using **pnpm workspaces**. Each service is independent but shares the same infrastructure.
+
+```text
+zapier/
+├── frontend/           # Next.js dashboard & React Flow canvas
+├── primary-backend/    # Main REST API, Auth, & Zap management
+├── hooks/              # Lightweight webhook receiver
+├── processor/          # Outbox-to-Kafka reliability engine
+├── worker/             # Event consumer & action executor
+├── docker-compose.yml  # Production stack (Dokploy optimized)
+└── package.json        # Monorepo configuration
+```
+
+---
+
+## 🔄 The ZFlow Workflow (Data Flow)
+
+Understanding how data travels through ZFlow is key to understanding its reliability:
+
+1.  **Entry (Hooks)**: A third-party service sends a POST request to the `hooks` service. 
+2.  **Persistence (Outbox)**: The `hooks` service saves the incoming data to the `ZapRun` table and creates a entry in the `ZapRunOutbox` table. This happens in a single **atomic database transaction**.
+3.  **Relay (Processor)**: The `processor` service continuously polls the `ZapRunOutbox`. When it finds an entry, it publishes a message to **Apache Kafka** and deletes the entry from the outbox.
+4.  **Execution (Worker)**: The `worker` service listens to the Kafka topic. It parses the trigger data, identifies the first action (e.g., Send Email), and executes it.
+5.  **Chaining**: If there are subsequent actions, the worker pushes a new message back to Kafka with `stage: stage + 1`, ensuring the next action is picked up reliably.
 
 ---
 
 ## 🏗️ Architecture
 
-The project follows a **microservices architecture** with the following components:
+ZFlow is decoupled into specialized microservices to ensure independent scalability and fault tolerance:
 
-```
-┌───────────────┐     ┌──────────────────┐     ┌──────────────┐
-│   Frontend    │────▶│ Primary Backend  │────▶│  PostgreSQL  │
-│  (Next.js)    │     │   (Express.js)   │     │   Database   │
-│  Port: 3000   │     │   Port: 3001     │     │  Port: 5432  │
-└───────────────┘     └──────────────────┘     └──────┬───────┘
-                                                       │
-┌───────────────┐     ┌──────────────────┐             │
-│  Hooks Server │────▶│   ZapRunOutbox   │◀────────────┘
-│  (Express.js) │     │   (DB Table)     │
-│  Port: 3002   │     └──────────────────┘
-└───────────────┘              │
-                               ▼
-                      ┌──────────────────┐
-                      │    Processor     │
-                      │   (Outbox ──▶    │
-                      │     Kafka)       │
-                      └────────┬─────────┘
-                               │
-                               ▼
-                      ┌──────────────────┐
-                      │     Apache       │
-                      │     Kafka        │
-                      │  Port: 9092      │
-                      └────────┬─────────┘
-                               │
-                               ▼
-                      ┌──────────────────┐
-                      │     Worker       │
-                      │  (Consumers)     │
-                      │  Email / SOL     │
-                      └──────────────────┘
-```
+- **Frontend**: Next.js dashboard for visual workflow management.
+- **Primary Backend**: REST API handling authentication, logic CRUD, and database management.
+- **Hooks**: A high-throughput receiver service dedicated to catching incoming webhooks.
+- **Processor**: A reliability engine that moves events from the database outbox to the message queue.
+- **Worker**: The execution engine that consumes Kafka events and performs the actions.
 
-| Service              | Description                                              | Default Port |
-| -------------------- | -------------------------------------------------------- | ------------ |
-| **Frontend**         | Next.js web application for creating and managing Zaps   | `3000`       |
-| **Primary Backend**  | REST API for auth, Zap CRUD, triggers, and actions       | `3001`       |
-| **Hooks**            | Webhook receiver that creates ZapRun entries             | `3002`       |
-| **Processor**        | Polls the outbox table and publishes events to Kafka     | —            |
-| **Worker**           | Consumes Kafka events and executes actions sequentially  | —            |
+---
+
+## 🛠️ Core Engineering Concepts
+
+To achieve high availability and data integrity, ZFlow implements several advanced patterns:
+
+### 📥 Transactional Outbox Pattern
+We don't send messages to Kafka directly when a webhook arrives. Instead, we save the event to the database and a temporary "Outbox" table in a **single transaction**. This ensures that if the DB save fails, we don't send a message, and if Kafka is down, we have the record safely in our DB to retry later.
+
+### 🛡️ Event Idempotency
+The system ensures that actions aren't executed twice by mistake. If a worker crashes halfway through a task and Kafka retries the message, the worker checks the `ZapRunAction` table to see if that specific stage was already successful before running it again.
+
+### 🧩 Template Parsing
+The worker uses a custom-built parser to inject dynamic data from incoming webhooks into your actions (e.g., using `{{body.amount}}` in an email or a SOL transaction).
 
 ---
 
 ## 🚀 Getting Started
 
-### Prerequisites
+ZFlow is built as a complex multi-service application. The easiest way to test the platform locally is using Docker Compose.
 
-Ensure the following are installed on your machine:
-
-- [Node.js](https://nodejs.org/) v18 or higher
-- [pnpm](https://pnpm.io/) v10+
-- [PostgreSQL](https://www.postgresql.org/) v14+
-- [Apache Kafka](https://kafka.apache.org/) (with Zookeeper or KRaft)
-- [Git](https://git-scm.com/)
-
-### 1. Clone the Repository
-
+### 💻 Local Development
+Expose all ports and services for local testing:
 ```bash
-git clone https://github.com/Rishi713144/ZFlow.git
-cd ZFlow
+docker-compose --env-file .env -f docker-compose.dev.yml up --build
 ```
 
-### 2. Set Up Environment Variables
+### 🛠️ Manual Setup
 
-Each service requires its own `.env` file. Copy the provided examples and fill in your values:
+If you prefer to run services individually without Docker, follow these steps:
 
+#### 1. Prerequisites
+Ensure you have the following installed:
+- [Node.js](https://nodejs.org/) (v20+)
+- [pnpm](https://pnpm.io/)
+- [PostgreSQL](https://www.postgresql.org/)
+- [Apache Kafka](https://kafka.apache.org/)
+
+#### 2. Install Dependencies
 ```bash
-# Primary Backend
-cp primary-backend/.env.example primary-backend/.env
-
-# Hooks
-cp hooks/.env.example hooks/.env
-
-# Processor
-cp processor/.env.example processor/.env
-
-# Worker
-cp worker/.env.example worker/.env
-```
-
-> ⚠️ **Important:** Never commit `.env` files. They are already in `.gitignore`.
-
-
-
-### 3. Install Dependencies
-
-```bash
-# Root dependencies
 pnpm install
-
-# Install for each service
-cd primary-backend && pnpm install && cd ..
-cd hooks && pnpm install && cd ..
-cd processor && pnpm install && cd ..
-cd worker && pnpm install && cd ..
-cd frontend && pnpm install && cd ..
 ```
 
-### 4. Set Up the Database
-
+#### 3. Database Setup
 ```bash
 cd primary-backend
-
-# Run Prisma migrations
-npx prisma migrate deploy
-
-# Seed the database with initial triggers and actions
+npx prisma migrate dev
 npx prisma db seed
-
-cd ..
 ```
 
-### 5. Start Kafka
+#### 4. Environment Variables
+Copy the `.env.example` file in each service directory to `.env` and fill in the required values:
+- `primary-backend/.env`
+- `hooks/.env`
+- `processor/.env`
+- `worker/.env`
+- `frontend/.env`
 
-Make sure Kafka is running on `localhost:9092` (or update `KAFKA_BROKERS` in your `.env` files).
-
+#### 5. Run Services
+Open separate terminals for each service:
 ```bash
-# Example using Docker
-docker run -d --name zookeeper -p 2181:2181 wurstmeister/zookeeper
-docker run -d --name kafka -p 9092:9092 \
-  -e KAFKA_ZOOKEEPER_CONNECT=host.docker.internal:2181 \
-  -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 \
-  -e KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092 \
-  wurstmeister/kafka
-```
-
-### 6. Run All Services
-
-Open separate terminal windows for each service:
-
-```bash
-# Terminal 1 — Primary Backend
+# Terminal 1: Backend
 cd primary-backend && pnpm dev
 
-# Terminal 2 — Hooks Server
+# Terminal 2: Hooks
 cd hooks && pnpm dev
 
-# Terminal 3 — Processor
+# Terminal 3: Processor
 cd processor && pnpm dev
 
-# Terminal 4 — Worker
+# Terminal 4: Worker
 cd worker && pnpm dev
 
-# Terminal 5 — Frontend
+# Terminal 5: Frontend
 cd frontend && pnpm dev
-```
-
-The app will be available at **http://localhost:3000**.
-
----
-
-
-## 📡 API Reference
-
-### Authentication
-
-| Method | Endpoint               | Description         | Auth Required |
-| ------ | ---------------------- | ------------------- | ------------- |
-| POST   | `/api/v1/user/signup`  | Register a new user | No            |
-| POST   | `/api/v1/user/signin`  | Sign in and get JWT | No            |
-| GET    | `/api/v1/user/`        | Get current user    | Yes           |
-
-### Flows
-
-| Method | Endpoint               | Description             | Auth Required |
-| ------ | ---------------------- | ----------------------- | ------------- |
-| POST   | `/api/v1/zap/`         | Create a new Flow       | Yes           |
-| GET    | `/api/v1/zap/`         | List all user's Flows   | Yes           |
-| GET    | `/api/v1/zap/:zapId`   | Get a specific Flow     | Yes           |
-
-### Triggers & Actions
-
-| Method | Endpoint                      | Description                  | Auth Required |
-| ------ | ----------------------------- | ---------------------------- | ------------- |
-| GET    | `/api/v1/trigger/available`   | List available trigger types | No            |
-| GET    | `/api/v1/action/available`    | List available action types  | No            |
-
-### Webhooks
-
-| Method | Endpoint                            | Description            |
-| ------ | ----------------------------------- | ---------------------- |
-| POST   | `/hooks/catch/:userId/:zapId`       | Trigger a Flow via webhook |
-
----
-
-## 🗄️ Database Schema
-
-The application uses **PostgreSQL** with **Prisma ORM**. Key models:
-
-- **User** — Registered users
-- **Flow** — A workflow with one trigger and multiple actions
-- **Trigger** — The event that starts a Flow (e.g., Webhook)
-- **Action** — A step in the Flow (e.g., Send Email, Send SOL)
-- **AvailableTrigger / AvailableAction** — Catalog of supported trigger/action types
-- **FlowRun** — An execution instance of a Flow
-- **FlowRunOutbox** — Transactional outbox for reliable Kafka publishing
-
-To explore the schema:
-
-```bash
-cd primary-backend
-npx prisma studio
-```
-
----
-
-## 🧪 Development
-
-### Project Structure
-
-```
-ZFlow/
-├── frontend/              # Next.js web application
-│   ├── app/               # App router pages
-│   ├── components/        # Reusable UI components
-│   └── public/            # Static assets
-├── primary-backend/       # Main REST API server
-│   ├── prisma/            # Database schema & migrations
-│   └── src/
-│       ├── router/        # Express route handlers
-│       ├── middleware.ts   # Auth middleware
-│       ├── config.ts      # App configuration
-│       └── db/            # Prisma client setup
-├── hooks/                 # Webhook receiver service
-│   ├── prisma/            # Shared schema reference
-│   └── src/
-├── processor/             # Outbox → Kafka publisher
-│   ├── prisma/            # Shared schema reference
-│   └── src/
-├── worker/                # Kafka consumer & action executor
-│   ├── prisma/            # Shared schema reference
-│   └── src/
-│       ├── email.ts       # Email sending logic
-│       ├── solana.ts      # Solana transfer logic
-│       └── parser.ts      # Template variable parser
-├── CONTRIBUTING.md        # Contribution guidelines
-
-├── LICENSE                # MIT License
-└── README.md                 # Project overview & setup
 ```
 
 ---
 
 ## 🤝 Contributing
 
-We love contributions! Whether it's bug fixes, new features, documentation improvements, or just reporting issues — every bit helps.
+We welcome contributions from the community! Whether you are fixing bugs, improving documentation, or proposing new features, your help is appreciated. ZFlow is an evolving platform, and your feedback—whether it's a new integration idea or a UI tweak—helps make it better for everyone.
 
-Please read our **[Contributing Guide](CONTRIBUTING.md)** before submitting a pull request.
+If you'd like to contribute:
+1. **Fork** the repository and create your branch from `main`.
+2. **Commit** your changes with clear, atomized, and descriptive messages.
+3. **Open a Pull Request** that follows our professional standards:
+   - **Clear Description**: Explain the *why* and the *how* behind your changes.
+   - **Screenshots/Videos**: Mandatory for any UI or visual workflow changes.
+   - **Scope**: Keep PRs focused. It's better to submit three small, clean PRs than one giant, complex one.
+   - **Quality Assurance**: Ensure your code is linted, follows the established TypeScript patterns, and doesn't break existing local development flows.
 
----
-
-## ✨ Features (Implemented)
-
-- [x] 🔑 **Email Verification** — Secure signup with verification tokens
-- [x] 🔄 **Password Reset** — Self-service password recovery flow
-- [x] 🔐 **Secure Auth** — Password hashing with bcrypt for user security
-- [x] 🎨 **Visual Builder** — Interactive **React Flow** canvas for designing Zaps
-- [x] 🔀 **Parallel Actions** — Branching workflows with stage-based execution
-- [x] 🛡️ **Blockchain Replay Prevention** — Signature tracking & reconciliation for Solana
-- [x] 🐳 **Infrastructure-as-Code** — Ready-to-use Docker Compose setup
-
-## 📝 Roadmap (Upcoming)
-
-- [ ] ✅ Comprehensive unit & integration test suite
-- [ ] 📊 Real-time monitoring and execution logs
-- [ ] 🔌 Extensible plugin system for custom integrations
+We believe in the power of open source and look forward to building the future of automation together! By maintaining high standards for our Pull Requests, we ensure ZFlow remains a robust and reliable tool for everyone.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- Inspired by Zapier and the automation-first workflow philosophy
-- Built with love by the open-source community
-
----
-
-<p align="center">
-  <sub>If you found this project useful, please consider giving it a ⭐</sub>
-</p>
+This project is licensed under the **MIT License**.
