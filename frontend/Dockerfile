@@ -14,8 +14,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build
-# Debug: show where server.js actually ends up
-RUN find /app/.next/standalone -name "server.js" -type f
 
 FROM node:20-slim AS runner
 WORKDIR /app
@@ -27,11 +25,12 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Debug: show contents to verify server.js location
-RUN ls -la /app/
+# The standalone output nests files under /app/.next/standalone/app/ because
+# the builder WORKDIR is /app. Copy from the nested path so server.js lands
+# directly at /app/server.js.
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone/app/ ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
