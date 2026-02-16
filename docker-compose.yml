@@ -53,7 +53,7 @@ services:
     restart: always
     networks:
       - zflow_network
-      - dokploy
+      - dokploy-network
 
   hooks:
     build:
@@ -74,7 +74,7 @@ services:
     restart: always
     networks:
       - zflow_network
-      - dokploy
+      - dokploy-network
 
   processor:
     build:
@@ -128,12 +128,12 @@ services:
     restart: always
     networks:
       - zflow_network
-      - dokploy
+      - dokploy-network
 
 networks:
   zflow_network:
     driver: bridge
-  dokploy:
+  dokploy-network:
     external: true
 
 volumes:
