@@ -53,6 +53,7 @@ services:
     restart: always
     networks:
       - zflow_network
+      - dokploy
 
   hooks:
     build:
@@ -73,6 +74,7 @@ services:
     restart: always
     networks:
       - zflow_network
+      - dokploy
 
   processor:
     build:
@@ -126,10 +128,13 @@ services:
     restart: always
     networks:
       - zflow_network
+      - dokploy
 
 networks:
   zflow_network:
     driver: bridge
+  dokploy:
+    external: true
 
 volumes:
   postgres_data:
