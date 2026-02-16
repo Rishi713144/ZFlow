@@ -43,7 +43,7 @@ services:
       - KAFKA_BROKERS=kafka:9092
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.zflow-backend.rule=Host(`${BACKEND_DOMAIN}`)"
+      - "traefik.http.routers.zflow-backend.rule=Host(${BACKEND_DOMAIN})"
       - "traefik.http.routers.zflow-backend.entrypoints=websecure"
       - "traefik.http.routers.zflow-backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.zflow-backend.loadbalancer.server.port=3001"
@@ -64,7 +64,7 @@ services:
       - KAFKA_BROKERS=kafka:9092
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.zflow-hooks.rule=Host(`${HOOKS_DOMAIN}`)"
+      - "traefik.http.routers.zflow-hooks.rule=Host(${HOOKS_DOMAIN})"
       - "traefik.http.routers.zflow-hooks.entrypoints=websecure"
       - "traefik.http.routers.zflow-hooks.tls.certresolver=letsencrypt"
       - "traefik.http.services.zflow-hooks.loadbalancer.server.port=3002"
