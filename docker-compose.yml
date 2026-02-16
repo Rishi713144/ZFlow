@@ -117,7 +117,7 @@ services:
       - NEXT_PUBLIC_HOOKS_URL=${PUBLIC_HOOKS_URL}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.zflow-frontend.rule=Host(`${FRONTEND_DOMAIN}`)"
+      - "traefik.http.routers.zflow-frontend.rule=Host(${FRONTEND_DOMAIN})"
       - "traefik.http.routers.zflow-frontend.entrypoints=websecure"
       - "traefik.http.routers.zflow-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.zflow-frontend.loadbalancer.server.port=3000"
