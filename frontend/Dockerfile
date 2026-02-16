@@ -14,6 +14,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build
+# Debug: show where server.js actually ends up
+RUN find /app/.next/standalone -name "server.js" -type f
 
 FROM node:20-slim AS runner
 WORKDIR /app
@@ -27,6 +29,9 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Debug: show contents to verify server.js location
+RUN ls -la /app/
 
 USER nextjs
 
