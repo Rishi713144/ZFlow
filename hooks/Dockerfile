@@ -2,12 +2,15 @@ FROM node:20-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
+RUN apt-get update -y && apt-get install -y openssl
+
 
 FROM base AS builder
 WORKDIR /app
 COPY . .
 RUN pnpm install
-RUN npx prisma generate
+RUN DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy npx prisma generate
+
 RUN pnpm build
 
 FROM base AS runner
