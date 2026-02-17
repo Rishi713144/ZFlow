@@ -26,11 +26,11 @@ RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
 
-# The standalone output nests files under /app/.next/standalone/app/ because
-# the builder WORKDIR is /app. Copy from the nested path so server.js lands
-# directly at /app/server.js.
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone/app/ ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copy the ENTIRE standalone output (includes node_modules at the root level
+# that Next.js needs for server actions and runtime). server.js is nested
+# under app/ because the builder WORKDIR is /app.
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./app/.next/static
 
 USER nextjs
 
@@ -38,4 +38,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["node", "app/server.js"]
