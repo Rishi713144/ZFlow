@@ -114,6 +114,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_BACKEND_URL=${PUBLIC_BACKEND_URL}
+        - NEXT_PUBLIC_HOOKS_URL=${PUBLIC_HOOKS_URL}
     environment:
       - NEXT_PUBLIC_BACKEND_URL=${PUBLIC_BACKEND_URL}
       - NEXT_PUBLIC_HOOKS_URL=${PUBLIC_HOOKS_URL}

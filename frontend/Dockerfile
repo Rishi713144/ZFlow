@@ -12,7 +12,14 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Accept build args so NEXT_PUBLIC_* vars are baked into the client bundle
+ARG NEXT_PUBLIC_BACKEND_URL
+ARG NEXT_PUBLIC_HOOKS_URL
+ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
+ENV NEXT_PUBLIC_HOOKS_URL=$NEXT_PUBLIC_HOOKS_URL
 ENV NEXT_TELEMETRY_DISABLED=1
+
 RUN pnpm build
 
 FROM node:20-slim AS runner
