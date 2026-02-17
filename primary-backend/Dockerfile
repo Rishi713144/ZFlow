@@ -9,6 +9,8 @@ FROM base AS builder
 WORKDIR /app
 COPY . .
 RUN pnpm install
+
+# Generate client (schema must be valid here)
 RUN DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy npx prisma generate
 
 RUN pnpm build
@@ -21,5 +23,5 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 EXPOSE 3001
 
-# Run migrations then start the server
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+# Run migrations with retry loop to wait for Postgres to be ready
+CMD ["sh", "-c", "until npx prisma migrate deploy; do echo 'Migration failed, retrying in 5s...' && sleep 5; done && node dist/index.js"]
